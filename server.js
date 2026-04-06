@@ -22,21 +22,22 @@ const Alarm = mongoose.model(
   "UserData",   // model name
   new mongoose.Schema({
     hour: Number,
-    minute: Number
+    minute: Number,
+    schedule: String 
   }),
   "UserData"    // 👈 exact collection name
 );
 
 // 👉 Save alarm
 app.post("/set-alarm", async (req, res) => {
-  const { hour, minute } = req.body;
+  const { hour, minute, schedule } = req.body;
 
-  if (hour == null || minute == null) {
+  if (hour == null || minute == null || !schedule) {
     return res.status(400).json({ error: "Invalid input" });
   }
 
   await Alarm.deleteMany(); // keep only latest
-  await Alarm.create({ hour, minute });
+  await Alarm.create({ hour, minute, schedule });
 
   res.json({ message: "Alarm saved" });
 });
@@ -46,7 +47,7 @@ app.get("/get-alarm", async (req, res) => {
   const alarm = await Alarm.findOne();
 
   if (!alarm) {
-    return res.json({ hour: 12, minute: 0 }); // default
+    return res.json({ hour: 12, minute: 0,  schedule:"Morning"  }); // default
   }
 
   res.json(alarm);
