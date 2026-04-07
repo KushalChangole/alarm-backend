@@ -8,49 +8,75 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 👉 Replace with your MongoDB URI
+// -------- DB CONNECTION --------
 mongoose.connect(process.env.MONGO_URL)
-    .then(() => console.log("MongoDB Connected"))
-    .catch((err) => console.log(err));
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log(err));
 
-// Schema (single alarm)
-// const Alarm = mongoose.model("Alarm", {
-//   hour: Number,
-//   minute: Number
-// });
+// -------- SCHEMA (3 alarms) --------
 const Alarm = mongoose.model(
-  "UserData",   // model name
+  "UserData",
   new mongoose.Schema({
-    hour: Number,
-    minute: Number,
-    schedule: String 
+    morning: {
+      hour: Number,
+      minute: Number
+    },
+    afternoon: {
+      hour: Number,
+      minute: Number
+    },
+    evening: {
+      hour: Number,
+      minute: Number
+    }
   }),
-  "UserData"    // 👈 exact collection name
+  "UserData"
 );
 
-// 👉 Save alarm
+// -------- SAVE ALL 3 ALARMS --------
 app.post("/set-alarm", async (req, res) => {
-  const { hour, minute, schedule } = req.body;
+  const { morning, afternoon, evening } = req.body;
 
-  if (hour == null || minute == null || !schedule) {
+  // Validation
+  if (!morning || !afternoon || !evening) {
     return res.status(400).json({ error: "Invalid input" });
   }
 
-  await Alarm.deleteMany(); // keep only latest
-  await Alarm.create({ hour, minute, schedule });
+  try {
+    await Alarm.deleteMany(); // keep only latest set
 
-  res.json({ message: "Alarm saved" });
-});
+    await Alarm.create({
+      morning,
+      afternoon,
+      evening
+    });
 
-// 👉 Get alarm (Pico will call this)
-app.get("/get-alarm", async (req, res) => {
-  const alarm = await Alarm.findOne();
+    res.json({ message: "All alarms saved" });
 
-  if (!alarm) {
-    return res.json({ hour: 12, minute: 0,  schedule:"Morning"  }); // default
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
-
-  res.json(alarm);
 });
 
+// -------- GET ALL ALARMS --------
+app.get("/get-alarm", async (req, res) => {
+  try {
+    const alarm = await Alarm.findOne();
+
+    if (!alarm) {
+      return res.json({
+        morning: { hour: 8, minute: 0 },
+        afternoon: { hour: 13, minute: 0 },
+        evening: { hour: 20, minute: 0 }
+      });
+    }
+
+    res.json(alarm);
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// -------- START SERVER --------
 app.listen(3000, () => console.log("Server running on port 3000"));
