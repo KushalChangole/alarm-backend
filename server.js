@@ -13,7 +13,7 @@ mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
-// -------- SCHEMA (3 alarms) --------
+// -------- SCHEMA --------
 const Alarm = mongoose.model(
   "UserData",
   new mongoose.Schema({
@@ -37,13 +37,12 @@ const Alarm = mongoose.model(
 app.post("/set-alarm", async (req, res) => {
   const { morning, afternoon, evening } = req.body;
 
-  // Validation
   if (!morning || !afternoon || !evening) {
     return res.status(400).json({ error: "Invalid input" });
   }
 
   try {
-    await Alarm.deleteMany(); // keep only latest set
+    await Alarm.deleteMany();
 
     await Alarm.create({
       morning,
@@ -58,20 +57,40 @@ app.post("/set-alarm", async (req, res) => {
   }
 });
 
-// -------- GET ALL ALARMS --------
+// -------- GET ALARMS AS ARRAY --------
 app.get("/get-alarm", async (req, res) => {
   try {
     const alarm = await Alarm.findOne();
 
+    // 👉 Default if no data
     if (!alarm) {
-      return res.json({
-        morning: { hour: 8, minute: 0 },
-        afternoon: { hour: 13, minute: 0 },
-        evening: { hour: 20, minute: 0 }
-      });
+      return res.json([
+        { hour: 8, minute: 0, schedule: "morning" },
+        { hour: 13, minute: 0, schedule: "afternoon" },
+        { hour: 20, minute: 0, schedule: "evening" }
+      ]);
     }
 
-    res.json(alarm);
+    // 👉 Convert object → array
+    const response = [
+      {
+        hour: alarm.morning.hour,
+        minute: alarm.morning.minute,
+        schedule: "morning"
+      },
+      {
+        hour: alarm.afternoon.hour,
+        minute: alarm.afternoon.minute,
+        schedule: "afternoon"
+      },
+      {
+        hour: alarm.evening.hour,
+        minute: alarm.evening.minute,
+        schedule: "evening"
+      }
+    ];
+
+    res.json(response);
 
   } catch (err) {
     res.status(500).json({ error: "Server error" });
