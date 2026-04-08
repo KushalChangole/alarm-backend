@@ -8,10 +8,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// -------- DB CONNECTION --------
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+// -------- ROOT ROUTE (for testing) --------
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
 
 // -------- SCHEMA --------
 const Alarm = mongoose.model(
@@ -53,6 +53,7 @@ app.post("/set-alarm", async (req, res) => {
     res.json({ message: "All alarms saved" });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -62,7 +63,6 @@ app.get("/get-alarm", async (req, res) => {
   try {
     const alarm = await Alarm.findOne();
 
-    // 👉 Default if no data
     if (!alarm) {
       return res.json([
         { hour: 8, minute: 0, schedule: "morning" },
@@ -71,7 +71,6 @@ app.get("/get-alarm", async (req, res) => {
       ]);
     }
 
-    // 👉 Convert object → array
     const response = [
       {
         hour: alarm.morning.hour,
@@ -93,9 +92,21 @@ app.get("/get-alarm", async (req, res) => {
     res.json(response);
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// -------- START SERVER FIRST --------
 const PORT = process.env.PORT || 3000;
-// -------- START SERVER --------
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+// -------- CONNECT DB AFTER SERVER START --------
+mongoose.connect(process.env.MONGO_URL, {
+  serverSelectionTimeoutMS: 5000
+})
+.then(() => console.log("MongoDB Connected"))
+.catch((err) => console.error("MongoDB Error:", err));
