@@ -96,6 +96,6 @@ app.get("/get-alarm", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
+const PORT = process.env.PORT || 3000;
 // -------- START SERVER --------
-app.listen(3000, () => console.log("Server running on port 3000"));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
